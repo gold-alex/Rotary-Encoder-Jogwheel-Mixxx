@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MixxxControllerPreset mixxxVersion="2.3" schemaVersion="1">
+  <controller id="Arduino Leonardo JogWheel" name="Arduino JogWheel Controller" author="gold-alex">
+    <controls>
+      <!-- Deck 1 Jog Wheel -->
+      <control>
+        <status>0xB0</status>             <!-- MIDI CC on channel 1 -->
+        <midino>0x10</midino>             <!-- CC number 0x10 (16 decimal) for jog -->
+        <group>[Channel1]</group>         <!-- Maps to deck 1 -->
+        <key>JogWheel.turn</key>          <!-- Calls the function defined in the JS file -->
+        <options>
+          <Script-Binding/>              <!-- Marks this control as script-handled -->
+        </options>
+      </control>
+      <!-- Deck 2 Jog Wheel (if using a second encoder) -->
+      <control>
+        <status>0xB1</status>             <!-- MIDI CC on channel 2 -->
+        <midino>0x10</midino>             <!-- Same CC number (0x10) on channel 2 -->
+        <group>[Channel2]</group>         <!-- Maps to deck 2 -->
+        <key>JogWheel.turn</key>          <!-- Calls the same JS function for deck 2 -->
+        <options>
+          <Script-Binding/>
+        </options>
+      </control>
+    </controls>
+    <scriptfiles>
+      <file filename="Arduino_JogWheel_v3.js"></file>   <!-- Link to the external JavaScript file -->
+    </scriptfiles>
+  </controller>
+</MixxxControllerPreset>

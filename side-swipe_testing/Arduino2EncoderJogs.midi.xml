@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<MixxxControllerPreset mixxxVersion="2.3.0" schemaVersion="1">
+    <info>
+        <name>Arduino 2-Encoder Jogs</name>
+        <author>Your Name</author>
+        <description>Mapping for two relative jog encoders from Arduino code sending CC#10 / CC#11 using script binding.</description>
+    </info>
+    <controller id="Arduino2EncoderJogs">
+        <scriptfiles>
+            <!-- The functionprefix must match the JS variable name below -->
+            <file filename="MyController-scripts.js" functionprefix="MyController"/>
+        </scriptfiles>
+        <controls>
+            <!-- Deck 1 jog: MIDI channel 1 (0xB0), CC #10 (0x0A) -->
+            <control>
+                <group>[Channel1]</group>
+                <key>MyController.jog</key>
+                <status>0xB0</status>
+                <midino>0x0A</midino>
+                <options>
+                    <Script-Binding/>
+                    <relative/>
+                </options>
+            </control>
+            <!-- Deck 2 jog: MIDI channel 2 (0xB1), CC #11 (0x0B) -->
+            <control>
+                <group>[Channel2]</group>
+                <key>MyController.jog</key>
+                <status>0xB1</status>
+                <midino>0x0B</midino>
+                <options>
+                    <Script-Binding/>
+                    <relative/>
+                </options>
+            </control>
+        </controls>
+        <outputs/>
+    </controller>
+</MixxxControllerPreset>
