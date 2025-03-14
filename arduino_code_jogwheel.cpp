@@ -1,4 +1,5 @@
-#include "MIDIUSB.h"  // Arduino MIDI USB library for Leonardo
+// In this example I am using an Arduino Leonardo
+#include "MIDIUSB.h"  // Arduino MIDI USB library (Please be wary THIS WILL NOT WORK on Arduino MEGA or boards not supporting native USB support for MIDI)
 
 // Encoder pin assignments
 const uint8_t ENC_PIN_A = 2;
