@@ -74,6 +74,4 @@ void loop() {
     }
     MidiUSB.flush();  // Flush MIDI output to ensure messages are sent immediately
   }
-
-  // No delay in loop for lowest latency. The loop will run fast and send MIDI as soon as possible.
 }
