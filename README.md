@@ -5,7 +5,7 @@ This setup turns an Arduino Leonardo (or any Arduino board recognized as a USB M
 ## Hardware Requirements
 
 - **Arduino Leonardo** (or another Arduino board with native USB support, such as Micro or Pro Micro)
-- **Rotary encoder** (we used EN16-H20AF15 - [DigiKey link](https://www.digikey.com/en/products/detail/tt-electronics-bi/EN16-H20AF15/2408777))
+- **Rotary encoder** (I used EN16-H20AF15 - [DigiKey link](https://www.digikey.com/en/products/detail/tt-electronics-bi/EN16-H20AF15/2408777))
 - **Connecting wires**
 - **Optional:** Enclosure for the controller
 
