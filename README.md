@@ -1,99 +1,102 @@
-# Arduino JogWheel for Mixxx
+# DIY Rotary Encoder Jog Wheel for Mixxx
 
-This setup turns an Arduino Leonardo (or any Arduino board recognized as a USB MIDI device) into a DJ jogwheel controller for Mixxx, using a rotary encoder.
+A custom-built jog wheel controller for Mixxx DJ software using an Arduino Leonardo/ATmega32U4 board. This project provides precise vinyl-style control for both scratching and track positioning.
+
+## Features
+
+- Native USB MIDI communication
+- Hardware debounced rotary encoder input
+- Dual deck support (Channel 1 & 2)
+- Configurable sensitivity and behavior
+- Smooth vinyl emulation with adjustable inertia
+- Fine-grained scrubbing control when paused
 
 ## Hardware Requirements
 
-- **Arduino Leonardo** (or another Arduino board with native USB support, such as Micro or Pro Micro)
-- **Rotary encoder** (I used EN16-H20AF15 - [DigiKey link](https://www.digikey.com/en/products/detail/tt-electronics-bi/EN16-H20AF15/2408777))
-- **Connecting wires**
-- **Optional:** Enclosure for the controller
+- Arduino Leonardo or compatible ATmega32U4 board
+- Mechanical rotary encoder (EN16 or similar)
+- 2x 2.2kΩ resistors
+- 2x 0.1µF capacitors
+- USB cable
 
-## Overview
+## Wiring Diagram
 
-The system consists of three main components:
-- **Arduino Code:** Reads rotary encoder movements and sends them as MIDI CC messages
-- **Mixxx Mapping XML:** Maps the MIDI messages to Mixxx controls
-- **JavaScript Handler:** Processes the jog wheel movements for precise control
+```
+Arduino Leonardo/ATmega32U4
+--------------------------
+Pin 2 (with 2.2kΩ) -> Encoder A
+Pin 3 (with 2.2kΩ) -> Encoder B
+GND              -> Encoder Common
+```
 
-## Wiring
+Each encoder pin should have:
+- A 2.2kΩ resistor in series
+- A 0.1µF capacitor to ground for hardware debouncing
 
-Connect the rotary encoder to the Arduino as follows:
-- Encoder pin A → Arduino digital pin 2
-- Encoder pin B → Arduino digital pin 3
-- Encoder common/ground → Arduino GND
+## Software Components
 
-## Installation Instructions
+### 1. Arduino Code (`arduino_code_jogwheel.cpp`)
+- Uses Paul Stoffregen's Encoder library
+- Implements native USB MIDI communication
+- Sends relative encoder movements as MIDI Control Change messages
+- Channel 1: CC #16 (0x10) for Deck 1
+- Channel 2: CC #16 (0x10) for Deck 2
 
-### 1. Upload Arduino Code
-- Install the Arduino IDE from [arduino.cc](https://www.arduino.cc/)
-- Install the MIDIUSB library:
-  - In Arduino IDE: Tools → Manage Libraries → Search for "MIDIUSB" → Install
-- Connect your Arduino to your computer
-- Open `arduino_code_jogwheel.cpp` in the Arduino IDE
-- Select your board type (e.g., Arduino Leonardo)
-- Upload the code to your Arduino
+### 2. Mixxx Mapping (`Mapping.midi.xml`)
+- Defines the controller mapping for Mixxx
+- Maps MIDI messages to deck controls
+- Supports both channels for dual deck operation
 
-### 2. Install Mixxx Mapping Files
-- Download the Mixxx mapping files:
-  - `Arduino_JogWheel.midi.xml`
-  - `Arduino_JogWheel_v3.js`
-- Place these files in your Mixxx controllers directory:
-   - `Settings>Controllers>Open User Mapping Folder`
-- Launch Mixxx
-- Go to Preferences → Controllers
-- Select "Arduino JogWheel Controller" from the list
-- Click "Enable" and then "OK"
+### 3. Mixxx Script (`JogWheelScratch.js`)
+- Implements vinyl emulation and scratching behavior
+- Features:
+  - Configurable ticks per revolution (default: 96)
+  - Adjustable vinyl RPM (default: 33.33)
+  - Fine-tuned inertia and damping
+  - Speed-based movement scaling
+  - Ultra-fine scrubbing control
+
+## Configuration
+
+The behavior can be customized by adjusting these parameters in `JogWheelScratch.js`:
+
+```javascript
+JogWheel.TICKS_PER_REV   = 96;    // Encoder resolution
+JogWheel.VINYL_RPM       = 33 + 1/3;  // Vinyl speed
+JogWheel.ALPHA           = 1.0 / 16.0;  // Inertia
+JogWheel.BETA            = JogWheel.ALPHA / 64.0;  // Damping
+JogWheel.MAX_SCALING     = 1.25;  // Speed boost limit
+JogWheel.SCRUB_SCALING   = 0.0001;  // Scrubbing sensitivity
+```
+
+## Installation
+
+1. Install the required Arduino libraries:
+   - MIDIUSB
+   - Encoder (by Paul Stoffregen)
+
+2. Upload the Arduino code to your board
+
+3. Copy the mapping and script files to your Mixxx controllers directory:
+   - `Mapping.midi.xml` → `controllers/`
+   - `JogWheelScratch.js` → `controllers/`
+
+4. Enable the controller in Mixxx preferences
 
 ## Usage
 
-Once installed and configured:
-- Connect your Arduino to your computer via USB
-- Launch Mixxx
-- The jog wheel should automatically be detected and work with Mixxx
-
-### Functionality
-- **When track is playing:** Rotate the jog wheel to temporarily speed up or slow down the track (like scratching on vinyl)
-- **When track is paused:** Rotate the jog wheel for precise cueing and scrubbing
-  - Slow movements provide fine control
-  - Fast movements scale dynamically for quicker navigation
-
-## Customization
-
-### Changing MIDI Channel
-If you want to use multiple controllers or change the MIDI channel:
-- In `arduino_code_jogwheel.cpp`, modify the `MIDI_CHANNEL` constant (1-16)
-- Update the corresponding `<status>` value in the XML mapping file:
-  - Channel 1: 0xB0
-  - Channel 2: 0xB1
-  - And so on...
-
-### Adjusting Sensitivity
-To change the jog wheel sensitivity:
-- In `Arduino_JogWheel_v3.js`, adjust these constants:
-  - `JogWheel.TICKS_PER_REV`: Higher values make rotation less sensitive
-  - `JogWheel.SCRUB_SCALING`: Lower values make scrubbing more precise
+- When a deck is playing: The jog wheel acts as a vinyl platter for scratching
+- When a deck is paused: The jog wheel provides fine-grained track positioning
+- The controller supports two decks independently (Channel 1 & 2)
 
 ## Troubleshooting
 
-- **No response from jog wheel:**
-  - Ensure Arduino is properly connected and recognized as a MIDI device
-  - Check that the controller is enabled in Mixxx preferences
-  - Verify encoder wiring connections
-- **Erratic movement:**
-  - Try adding debounce capacitors (0.1μF) between encoder pins and ground
-  - Adjust the encoder reading code in the Arduino sketch
-- **Wrong direction:**
-  - Swap the encoder A and B pin connections, or
-  - Modify the Arduino code to invert the direction logic
-
-## Advanced Features
-
-The JavaScript handler includes:
-- Dynamic scaling based on rotation speed
-- Different behavior for playing vs. paused tracks
-- Simulated vinyl inertia when scratching
+If you experience issues:
+1. Verify the encoder wiring and debouncing components
+2. Check that the Arduino is recognized as a MIDI device
+3. Ensure the mapping and script files are in the correct Mixxx directories
+4. Verify the MIDI channel settings match between Arduino and Mixxx
 
 ## License
 
-This project is open source and free to use, modify, and distribute.
+This project is open source and available under the MIT License.

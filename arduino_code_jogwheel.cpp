@@ -1,78 +1,78 @@
-// In this example I am using an Arduino Leonardo
-#include "MIDIUSB.h"  // Arduino MIDI USB library (Please be wary THIS WILL NOT WORK on Arduino MEGA or boards not supporting native USB support for MIDI)
+/********************************************************************
+ *  JogWheel.ino
+ *  Uses:
+ *    - Paul Stoffregen's Encoder library for mechanical encoder
+ *    - Native USB MIDI (MIDIUSB.h) on Arduino Leonardo/ATmega32U4
+ *
+ *  Wiring (with hardware RC debounce):
+ *    - EN16 encoder A -> 2.2kΩ -> pin 2; 0.1µF from pin 2 to GND
+ *    - EN16 encoder B -> 2.2kΩ -> pin 3; 0.1µF from pin 3 to GND
+ *    - EN16 Common    -> Arduino GND
+ ********************************************************************/
 
-// Encoder pin assignments
-const uint8_t ENC_PIN_A = 2;
-const uint8_t ENC_PIN_B = 3;
+#include <MIDIUSB.h>     // Native USB MIDI for ATmega32U4
+#include <Encoder.h>     // Paul Stoffregen's Encoder library
 
-// MIDI settings for jog wheel
-const byte MIDI_CHANNEL = 1;       // MIDI channel (1-16) for this jog wheel
-const byte JOG_CC        = 0x10;   // MIDI CC number for jog wheel movement
+// Create an Encoder object: pinA, pinB
+Encoder jogWheel(2, 3);
 
-// Volatile variables changed inside ISR
-volatile int encoderDelta = 0;     // Accumulated encoder movement since last MIDI send
-volatile uint8_t lastState = 0;    // Last encoder state (pins A and B)
+// Track the last known position from the library
+long lastPosition = 0;
 
-// Interrupt Service Routine for encoder pin changes
-void encoderISR() {
-  // Read current state of both pins (bit0 = pin B, bit1 = pin A)
-  uint8_t currentState = (digitalRead(ENC_PIN_A) << 1) | digitalRead(ENC_PIN_B);
-  uint8_t stateTransition = (lastState << 2) | currentState;
-  // Determine direction by looking at valid state transitions (Gray code sequence)
-  switch (stateTransition) {
-    case 0b0001: case 0b0111: case 0b1110: case 0b1000:
-      // Clockwise rotation
-      encoderDelta++;
-      break;
-    case 0b0010: case 0b0100: case 0b1101: case 0b1011:
-      // Counter-clockwise rotation
-      encoderDelta--;
-      break;
-    default:
-      // Invalid transition (possibly due to bounce), ignore
-      break;
-  }
-  lastState = currentState;
-}
+// MIDI settings
+const byte MIDI_CHANNEL = 1;  // 1..16 => 0xB0 + (channel-1)
+const byte JOG_CC       = 0x10; // CC #16 decimal
 
-// Helper function to send a MIDI Control Change message
+//------------------------------------------------------------------
+// Send a MIDI Control Change event: +1 or -1 relative tick
+//------------------------------------------------------------------
 void sendJogMidi(int8_t relValue) {
-  // Construct MIDI event (0x0B = ControlChange message, 0xB0 | (MIDI_CHANNEL-1) = status byte)
-  midiEventPacket_t event = {0x0B, (uint8_t)(0xB0 | ((MIDI_CHANNEL-1) & 0x0F)), JOG_CC, (uint8_t)relValue};
+  // 0x0B = USB MIDI "Control Change"
+  // 0xB0 | ((MIDI_CHANNEL-1) & 0x0F) => 0xB0 for channel 1
+  midiEventPacket_t event = {
+    0x0B, 
+    (uint8_t)(0xB0 | ((MIDI_CHANNEL - 1) & 0x0F)),
+    JOG_CC,
+    (uint8_t)relValue
+  };
   MidiUSB.sendMIDI(event);
 }
 
+//------------------------------------------------------------------
+// Setup
+//------------------------------------------------------------------
 void setup() {
-  // Configure encoder pins as inputs with pullups (assuming encoder common to GND)
-  pinMode(ENC_PIN_A, INPUT_PULLUP);
-  pinMode(ENC_PIN_B, INPUT_PULLUP);
-  // Initialize lastState to current pin state to avoid spurious movement at startup
-  lastState = (digitalRead(ENC_PIN_A) << 1) | digitalRead(ENC_PIN_B);
-  // Attach interrupts to both encoder channels on any change
-  attachInterrupt(digitalPinToInterrupt(ENC_PIN_A), encoderISR, CHANGE);
-  attachInterrupt(digitalPinToInterrupt(ENC_PIN_B), encoderISR, CHANGE);
+  // Pin modes with internal pullups
+  pinMode(2, INPUT_PULLUP);
+  pinMode(3, INPUT_PULLUP);
+
+  // Optional: reset encoder reading to 0
+  jogWheel.write(0);
+  lastPosition = 0;
+
+  // (No attachInterrupt needed because the Encoder library does that under the hood)
 }
 
+//------------------------------------------------------------------
+// Loop
+//------------------------------------------------------------------
 void loop() {
-  // Check if encoder moved since last loop iteration
-  noInterrupts();               // Temporarily disable interrupts to safely read shared data
-  int delta = encoderDelta;
-  encoderDelta = 0;             // Reset the delta counter
-  interrupts();                 // Re-enable interrupts
+  long newPosition = jogWheel.read();
+  long delta = newPosition - lastPosition;
 
   if (delta != 0) {
-    // Send one or more MIDI messages corresponding to the movement
     if (delta > 0) {
-      // For positive delta, send one increment per tick
-      for (int i = 0; i < delta; ++i) {
-        sendJogMidi(0x01);      // 0x01 (1) = one tick clockwise
+      // For each positive step, send 0x01
+      for (long i = 0; i < delta; i++) {
+        sendJogMidi(0x01);
       }
-    } else if (delta < 0) {
-      // For negative delta, send one decrement per tick
-      for (int i = 0; i > delta; --i) {
-        sendJogMidi(0x7F);      // 0x7F (127) = one tick counter-clockwise (two's complement -1)
+    } else {
+      // For each negative step, send 0x7F (127 => -1 in 7-bit two's complement)
+      for (long i = 0; i > delta; i--) {
+        sendJogMidi(0x7F);
       }
     }
-    MidiUSB.flush();  // Flush MIDI output to ensure messages are sent immediately
+    lastPosition = newPosition;
+    MidiUSB.flush();  // Ensure messages go out immediately
   }
 }
